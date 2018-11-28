@@ -192,6 +192,7 @@ func searchRecipe(search string) []SimpleRecipe {
 }
 
 func searchRecipeById(id string) Recipe {
+
 	//Connect to the 'recipes' db
 	db, err := sql.Open("postgres", "postgresql://maxroach@localhost:26257/recipes?sslmode=disable")
 	if err != nil {
@@ -215,7 +216,7 @@ func searchRecipeById(id string) Recipe {
 		log.Println("Error querying products: ", err)
 	}
 
-	rows, err := db.Query("SELECT igredient FROM recipes_ingredients WHERE recipeID = $1", id)
+	rows, err := db.Query("SELECT ingredient FROM recipes_ingredients WHERE recipeID = $1", id)
 	if err != nil {
 		log.Fatal("Error querying ingredients: ", err)
 	}

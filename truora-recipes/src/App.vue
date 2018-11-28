@@ -29,9 +29,32 @@
           :img-src="recipe.image"
           img-fluid
         >
-          <p>Difficulty: {{recipe.difficulty}}</p>
-          <p>{{shortPreparation(recipe.procedure)}}</p>
-          <b-button size="sm" variant="primary">Ver receta completa</b-button>
+          <p>Dificultad: {{recipe.difficulty}}</p>
+          <transition name="recipe-content" mode="out-in">            
+            <div v-if="selectedRecipe !== recipe.id" key="simple">
+              <p>{{shortPreparation(recipe.procedure)}}</p>
+            </div>
+            <div v-else key="detailed">
+              <p>{{recipe.procedure}}</p>
+              <p>Ingredientes:</p>
+              <div class="ingredients-container">
+                <ul v-if="!fetchingIngredients">
+                  <li v-for="ingredient in recipe.ingredients" :key="ingredient">{{ingredient}}</li>
+                </ul>
+                <div v-else>
+                  <div v-if="fetching" class="lds-ripple col-1">
+                    <div></div>
+                    <div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </transition>
+          <b-button
+            @click="displayRecipe(recipe)"
+            size="sm"
+            variant="primary"
+          >{{recipeButtonText(recipe)}}</b-button>
         </b-card>
       </b-card-group>
     </b-container>
@@ -49,6 +72,8 @@ export default {
       initialData: [],
       fetchedData: [],
       fetching: false,
+      selectedRecipe: "",
+      fetchingIngredients: false,
       errorMsg: ""
     };
   },
@@ -105,7 +130,6 @@ export default {
     fetchInitialData() {
       fetch("http://localhost:8085/recipes", {
         method: "GET",
-        /* mode: "no-cors", */
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json; charset=utf-8"
@@ -123,12 +147,42 @@ export default {
           this.err = err;
         });
     },
+    displayRecipe(recipe) {
+      if (recipe.id === this.selectedRecipe) {
+        this.selectedRecipe = "";
+      } else {
+        this.fetchingIngredients = true;
+        this.selectedRecipe = recipe.id;
+        fetch("http://localhost:8085/recipe?id=" + recipe.id, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json; charset=utf-8"
+          }
+        })
+          .then(resp => resp.json())
+          .then(json => {
+            console.log(json);
+            recipe.ingredients = json.ingredients;
+            this.fetchingIngredients = false;
+          })
+          .catch(err => {
+            console.log(err);
+            this.err = "There was an error fetching data :(";
+            this.err = err;
+          });
+      }
+    },
     shortPreparation(preparation) {
       if (preparation.length > 50) {
         return preparation.substring(0, 47) + "...";
       } else {
         return preparation;
       }
+    },
+    recipeButtonText(recipe) {
+      if (this.selectedRecipe !== recipe.id) return "Ver receta completa";
+      else return "Ocultar";
     }
   }
 };
@@ -141,6 +195,7 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
   margin: 16px;
+  transition: all 0.48s ease-in-out;
 }
 
 .top-container {
@@ -203,7 +258,17 @@ html #app .lds-ripple div:nth-child(2) {
 .fade-leave-active {
   transition: opacity 0.5s;
 }
-.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+.fade-enter, .fade-leave-to {
   opacity: 0;
+}
+
+/*Content transition*/
+
+.recipe-content-enter-active,
+.recipe-content-leave-active {
+  transition: all 0.3s;
+}
+.recipe-content-enter, .recipe-content-leave-to {
+  opacity: 0.72;
 }
 </style>
